@@ -9,31 +9,31 @@ let moduleCounter = 0;
 
 type SubmitValue = unknown
 
-export default class ModularModule {
+export default class ModularModule<Value extends {}> {
     id: number;
     form: ModularForm;
 
     name: string = "";
 
     // функция для валидации значений модуля
-    validation?: ValidationFn;
+    validation?: ValidationFn<Value>;
 
     // начальное значение, которое применится при сбросе формы
-    initialValues?: ModularValues;
+    initialValues?: ModularValues<Value>;
     // функция-генератор начального значения
-    initialValuesGetter?: InitialValueGetter;
+    initialValuesGetter?: InitialValueGetter<Value>;
 
     //последнее значение, с которым инициализирован модуль
-    lastInitialValues?: ModularValues;
+    lastInitialValues?: ModularValues<Value>;
 
-    submitModifier?: SubmitModifier<SubmitValue>;
+    submitModifier?: SubmitModifier<Value, SubmitValue>;
 
     constructor(form: ModularForm) {
         this.id = ++moduleCounter;
         this.form = form;
     }
 
-    get values(): ModularValues {
+    get values(): ModularValues<Value> {
         return this.form.state[this.id];
     }
 
@@ -41,7 +41,7 @@ export default class ModularModule {
         this.form.setValues(this.id, value);
     }
 
-    get errors(): ModularErrors {
+    get errors(): ModularErrors<Value> {
         return this.form.errors[this.id];
     }
 
@@ -49,7 +49,7 @@ export default class ModularModule {
         this.form.setErrors(this.id, value);
     }
 
-    get touched(): ModularTouched {
+    get touched(): ModularTouched<Value> {
         return this.form.touched[this.id];
     }
 
@@ -85,56 +85,55 @@ export default class ModularModule {
         return checkValid(this.errors);
     }
 
-    _remove() {
+    unset() {
         this.form._removeModule(this.id);
     }
 
     async init(initialData?: unknown): Promise<void> {
-
         const initialValues = this.initialValuesGetter
             ? await this.initialValuesGetter(initialData)
-            : this.initialValues ?? {};
+            : this.initialValues ?? {} as Value;
         this.lastInitialValues = cloneDeep(initialValues);
 
         await this.setValues(cloneDeep(initialValues), false);
 
         //установлено значение touched для стартовых значений
-        await this.setTouched(createTouched(initialValues), false);
+        await this.setTouched(createTouched(initialValues, false), false);
 
         this.setErrors({});
         return;
     }
 
-    setInitialValues(values: ModularValues | InitialValueGetter): ModularModule {
+    setInitialValues(values: ModularValues<Value> | InitialValueGetter<Value>): ModularModule<Value> {
         if (typeof values === "function") {
-            this.initialValuesGetter = values;
+            this.initialValuesGetter = values as InitialValueGetter<Value>;
         } else {
             this.initialValues = values;
         }
         return this;
     }
 
-    setName(name: string): ModularModule {
+    setName(name: string): ModularModule<Value> {
         this.name = name;
         return this;
     }
 
-    async touchAllFields(): Promise<ModularModule> {
-        await this.setTouched(createTouched(this.touched, true), true);
+    async touchAllFields(): Promise<ModularModule<Value>> {
+        await this.setTouched(createTouched(this.touched as Value, true), true);
         return this;
     }
 
-    setValidation(validateFn: ValidationFn): ModularModule {
+    setValidation(validateFn: ValidationFn<Value>): ModularModule<Value> {
         this.validation = validateFn;
         return this;
     }
 
-    async validate(): Promise<ModularErrors> {
+    async validate(): Promise<ModularErrors<Value>> {
         this.errors = this.validation ? await this.validation(this.values) : {};
         return this.errors;
     }
 
-    setSubmitModifier(modifier: SubmitModifier<SubmitValue>): ModularModule {
+    setSubmitModifier(modifier: SubmitModifier<Value, SubmitValue>): ModularModule<Value> {
         this.submitModifier = modifier;
         return this;
     }
@@ -146,7 +145,7 @@ export default class ModularModule {
         return this.submitModifier(this.values);
     }
 
-    async setValues(values: ModularValues, validate: boolean = true): Promise<void> {
+    async setValues(values: ModularValues<Value>, validate: boolean = true): Promise<void> {
         this.values = cloneDeep(values);
         validate && await this.validate();
         return;
@@ -158,7 +157,7 @@ export default class ModularModule {
         return;
     }
 
-    async setTouched(touched: ModularTouched, validate: boolean = true): Promise<void> {
+    async setTouched(touched: ModularTouched<Value>, validate: boolean = true): Promise<void> {
         this.touched = touched;
         validate && await this.validate();
         return;
@@ -170,7 +169,7 @@ export default class ModularModule {
         return;
     }
 
-    setErrors(errors: ModularErrors): void {
+    setErrors(errors: ModularErrors<Value>): void {
         this.errors = errors;
     }
 

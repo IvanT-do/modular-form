@@ -4,11 +4,11 @@ import {ModularSubmitValue} from "../types/form";
 import {set} from "lodash";
 
 export default class ModularForm{
-    _modules: Record<number, ModularModule> = {};
+    _modules: Record<number, ModularModule<any>> = {};
 
-    state: Record<number, ModularValues> = {};
-    errors: Record<number, ModularErrors> = {};
-    touched: Record<number, ModularTouched> = {};
+    state: Record<number, ModularValues<any>> = {};
+    errors: Record<number, ModularErrors<any>> = {};
+    touched: Record<number, ModularTouched<any>> = {};
 
     isValidating: boolean = false;
     lastValidateError: boolean = false;
@@ -33,8 +33,8 @@ export default class ModularForm{
         return this.modules.some(module => module.dirty);
     }
 
-    registerModule(){
-        const module = new ModularModule(this);
+    registerModule<ModuleValue extends {} = Record<string, any>>(){
+        const module = new ModularModule<ModuleValue>(this);
 
         this._modules[module.id] = module;
 
@@ -124,15 +124,15 @@ export default class ModularForm{
         return;
     }
 
-    setValues(moduleId: number, values: ModularValues): void {
+    setValues(moduleId: number, values: ModularValues<any>): void {
         this.state[moduleId] = values;
     }
 
-    setTouched(moduleId: number, touched: ModularTouched): void {
+    setTouched(moduleId: number, touched: ModularTouched<any>): void {
         this.touched[moduleId] = touched;
     }
 
-    setErrors(moduleId: number, errors: ModularErrors): void {
+    setErrors(moduleId: number, errors: ModularErrors<any>): void {
         this.errors[moduleId] = errors;
     }
 }
